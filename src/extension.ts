@@ -22,7 +22,11 @@ export function activate(context: vscode.ExtensionContext) {
           );
           const highlighted = activeTextEditor.document.getText(selectionRange);
           console.log("Highlighted", highlighted);
-		  const formatted = format(highlighted);
+		  //replace #{text} to '#{text}' or ${text} to '${text}'
+		  let formatted =  highlighted.replaceAll(/#\{([^\}]*?)\}/g, "'${$1}'")
+		 
+		  formatted = highlighted.replaceAll(/\$\{(.*?)\}/g, '${$1}');
+		  formatted = format(highlighted);
 		  editBuilder.replace(selectionRange, formatted);
         }
       });
