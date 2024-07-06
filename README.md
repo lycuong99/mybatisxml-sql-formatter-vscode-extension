@@ -1,71 +1,27 @@
-# demo-vse README
+Overview
+The MyBatis XML and SQL Formatter extension for Visual Studio Code enhances the readability and maintenance of your MyBatis configuration files by formatting both XML and embedded SQL statements. It preserves MyBatis-specific dynamic SQL tags while ensuring your code is clean and well-indented.
 
-This is the README for your extension "demo-vse". After writing up a brief description, we recommend including the following sections.
+Features
+Automatic Formatting: Formats MyBatis XML files and the SQL inside them with a single command.
+MyBatis Tag Handling: Special handling for MyBatis dynamic SQL tags like <if>, <choose>, <when>, <otherwise>, <foreach>, and <where>.
+Customizable Indentation: Define your preferred indentation level for both XML and SQL.
+File-Wide Formatting: Apply formatting to the entire document or just the selected part.
+Cross-Platform Support: Works seamlessly on Windows, macOS, and Linux.
+Installation
+Open Visual Studio Code.
+Go to the Extensions view by clicking on the Extensions icon in the Activity Bar on the side of the window.
+Search for "MyBatis XML and SQL Formatter".
+Click Install to add the extension to your VSCode.
+Usage
+Once installed, the extension can be used to format your MyBatis XML and SQL files:
 
-## Features
-
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
-
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
-
-## Requirements
-
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
-
-## Extension Settings
-
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
-
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+Format the Entire Document
+Open a MyBatis XML file in VSCode.
+Right-click on the editor and select Format Document, or use the default keyboard shortcut:
+Windows/Linux: Shift+Alt+F
+macOS: Shift+Option+F
+Format a Selection
+Select the portion of the file you want to format.
+Right-click on the selected text and choose Format Selection, or use the default keyboard shortcut:
+Windows/Linux: Ctrl+K Ctrl+F
+macOS: `Cmd+K Cmd
