@@ -52,6 +52,7 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
-    "sql-formatter": "^15.3.2"
+    "sql-formatter": "^15.3.2",
+    "xml-formatter": "^3.6.2"
   }
 }
