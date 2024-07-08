@@ -22,7 +22,8 @@ export const createConfig = (
   return {
     language: configuredDialect === 'auto-detect' ? detectedDialect : configuredDialect,
     ...createIndentationConfig(extensionSettings, formattingOptions),
-    keywordCase: extensionSettings.get<KeywordCase>('keywordCase'),
+    // keywordCase: extensionSettings.get<KeywordCase>('keywordCase'),
+    keywordCase: 'upper',
     dataTypeCase: extensionSettings.get<DataTypeCase>('dataTypeCase'),
     functionCase: extensionSettings.get<FunctionCase>('functionCase'),
     identifierCase: extensionSettings.get<IdentifierCase>('identifierCase'),

@@ -1,12 +1,28 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
-import { format } from "sql-formatter";
+import { format as formatSQL } from "sql-formatter";
 import * as vscode from "vscode";
-import formatXML from 'xml-formatter';
+import formatXML from "xml-formatter";
+import { createConfig } from "./config";
+
+const editorFormattingOptions = (editor: vscode.TextEditor) => ({
+  // According to types, these editor.options properties can also be strings or undefined,
+  // but according to docs, the string|undefined value is only applicable when setting,
+  // so it should be safe to cast them.
+  tabSize: editor.options.tabSize as number,
+  insertSpaces: editor.options.insertSpaces as boolean,
+});
+
+const createConfigForEditor = (editor: vscode.TextEditor) =>
+  createConfig(vscode.workspace.getConfiguration("SQL-Formatter-VSCode"), editorFormattingOptions(editor), "sql");
 
 function formatMyBatisSQL(text: string) {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor) {
+    return text;
+  }
   //replace #{text} to '#{text}' or ${text} to '${text}
-  var formatted = text.replaceAll(/#\{([^\}]*?)\}/g, "'#{$1}'");
+  let formatted = text.replaceAll(/#\{([^\}]*?)\}/g, "'#{$1}'");
   formatted = formatted.replaceAll(/$\{([^\}]*?)\}/g, "'${$1}'");
 
   const xmmlTagRegex =
@@ -16,9 +32,19 @@ function formatMyBatisSQL(text: string) {
     console.log(group1, group2);
 
     return `--<${group1}${group2}>\n${group3}\n--</${group1}>`;
+
+    // return formatXML(match, { collapseContent: true, });
   });
 
-  var formatted = format(formatted);
+  formatted = formatSQL(formatted, {
+    keywordCase: "upper",
+    language: "sql",
+    newlineBeforeSemicolon: true,
+    linesBetweenQueries: 1,
+    tabWidth: editor.options.tabSize as number,
+    useTabs: !editor.options.insertSpaces as boolean,
+    
+  });
 
   //recover
   formatted = formatted.replaceAll(/'#\{([^\}]*?)\}'/g, "#{$1}");
@@ -32,7 +58,10 @@ function formatMyBatisSQL(text: string) {
 
   return formatted;
 }
-
+function isXMLContent(text: string) {
+  const xmlTagRegex = /^<\s*([^>]*?)>/g;
+  return xmlTagRegex.test(text);
+}
 export function activate(context: vscode.ExtensionContext) {
   // 👎 formatter implemented as separate command
   vscode.commands.registerCommand("extension.format-foo", () => {
@@ -51,8 +80,11 @@ export function activate(context: vscode.ExtensionContext) {
           const highlighted = activeTextEditor.document.getText(selectionRange);
 
           console.log("Highlighted", highlighted);
-          // var formatted = formatMyBatisSQL(highlighted);
-          var formatted = formatMyBatisXML(highlighted);
+          if (isXMLContent(highlighted)) {
+            var formatted = formatMyBatisXML(highlighted);
+          } else {
+            var formatted = formatMyBatisSQL(highlighted);
+          }
           editBuilder.replace(selectionRange, formatted);
         }
       });
@@ -75,23 +107,25 @@ export function activate(context: vscode.ExtensionContext) {
 // Function to format the MyBatis XML content with embedded SQL
 function formatMyBatisXML(xmlContent: string): string {
   // Format the overall XML content to handle indentation and structure
-  let formattedXML = formatXML(xmlContent, { collapseContent: true });
+
+  let formattedXML = formatXML(xmlContent);
 
   // Regular expression to find MyBatis SQL tags and their content
-  const sqlTagPattern = /<\s*(select|insert|update|delete|if|choose|when|otherwise|foreach|where)([^>]*)>\r\n*(\s*)([\s\S]*?)<\/\s*\1\s*>/g;
+  const sqlTagPattern =
+    /<\s*(select|insert|update|delete|if|choose|when|otherwise|foreach|where)([^>]*)>\r\n*(\s*)([\s\S]*?)<\/\s*\1\s*>/g;
 
   // Replace each SQL section with formatted SQL while preserving dynamic SQL tags
-  formattedXML = formattedXML.replace(sqlTagPattern, (match, tag,attribute,space: string, content) => {
+  formattedXML = formattedXML.replace(sqlTagPattern, (match, tag, attribute, space: string, content) => {
     // If it's a SQL tag with actual SQL, format the SQL content inside
-    if (['select', 'insert', 'update', 'delete'].includes(tag)) {
+    if (["select", "insert", "update", "delete"].includes(tag)) {
       let sqlFormatted = formatMyBatisSQL(content);
-      sqlFormatted = sqlFormatted.replace(/\n/g, '\n' + space);
-      let spaceArr = space.split('');
+      sqlFormatted = sqlFormatted.replace(/\n/g, "\n" + space);
+      let spaceArr = space.split("");
       spaceArr.pop();
       spaceArr.pop();
       spaceArr.pop();
       spaceArr.pop();
-      let spaceMinue1 = spaceArr.join('');
+      let spaceMinue1 = spaceArr.join("");
       return `<${tag}${attribute}>\n${space}${sqlFormatted}\r\n${spaceMinue1}</${tag}>`;
     }
 
@@ -126,14 +160,16 @@ function formatSQLWithMyBatisTags(sqlContent: string): string {
   segments.push(sqlContent.substring(lastIndex));
 
   // Format each SQL segment separately, preserving dynamic tags
-  return segments.map(segment => {
-    // If the segment is a dynamic tag, return it as is
-    if (dynamicTagPattern.test(segment)) {
-      return segment;
-    }
-    // Otherwise, format the SQL segment
-    return format(segment, { language: 'sql'});
-  }).join('\n'); // Join the formatted segments with newlines
+  return segments
+    .map((segment) => {
+      // If the segment is a dynamic tag, return it as is
+      if (dynamicTagPattern.test(segment)) {
+        return segment;
+      }
+      // Otherwise, format the SQL segment
+      return formatSQL(segment, { language: "sql" });
+    })
+    .join("\n"); // Join the formatted segments with newlines
 }
 // This method is called when your extension is deactivated
 export function deactivate() {}
