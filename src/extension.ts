@@ -21,9 +21,15 @@ function formatMyBatisSQL(text: string) {
   if (!editor) {
     return text;
   }
+
+
   //replace #{text} to '#{text}' or ${text} to '${text}
   let formatted = text.replaceAll(/#\{([^\}]*?)\}/g, "'#{$1}'");
   formatted = formatted.replaceAll(/$\{([^\}]*?)\}/g, "'${$1}'");
+
+  formatted = formatted.replaceAll(/&gt;/g, ">");
+  formatted = formatted.replaceAll(/&lt;/g, "<");
+
 
   const xmmlTagRegex =
     /<\s*(if|choose|when|otherwise|foreach|where|select|insert|update|delete)([^>]*)>([\s\S]*?)<\/\s*\1\s*>/g;
@@ -32,8 +38,6 @@ function formatMyBatisSQL(text: string) {
     console.log(group1, group2);
 
     return `--<${group1}${group2}>\n${group3}\n--</${group1}>`;
-
-    // return formatXML(match, { collapseContent: true, });
   });
 
   formatted = formatSQL(formatted, {
@@ -59,7 +63,7 @@ function formatMyBatisSQL(text: string) {
   return formatted;
 }
 function isXMLContent(text: string) {
-  const xmlTagRegex = /^<\s*([^>]*?)>/g;
+  const xmlTagRegex = /^\s*<\s*([^>]*?)>/g;
   return xmlTagRegex.test(text);
 }
 export function activate(context: vscode.ExtensionContext) {
