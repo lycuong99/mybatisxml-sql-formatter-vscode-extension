@@ -2,7 +2,8 @@
   "name": "mybatis-formatter",
   "displayName": "Mybatis Formatter",
   "description": "",
-  "version": "0.0.4",
+  "version": "0.0.7",
+  "icon": "logo.jpg",
   "publisher": "cuongly99",
   "engines": {
     "vscode": "^1.8.8"
@@ -29,7 +30,7 @@
     "commands": [
       {
         "command": "extension.format-foo",
-        "title": "(Bad) Format Foo Files"
+        "title": "Format Mybatis"
       }
     ]
   },

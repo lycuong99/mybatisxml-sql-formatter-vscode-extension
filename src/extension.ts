@@ -34,10 +34,10 @@ function formatMyBatisSQL(text: string) {
   const xmmlTagRegex =
     /<\s*(if|choose|when|otherwise|foreach|where|select|insert|update|delete)([^>]*)>([\s\S]*?)<\/\s*\1\s*>/g;
 
-  formatted = formatted.replaceAll(xmmlTagRegex, (match, group1, group2, group3) => {
-    console.log(group1, group2);
+  formatted = formatted.replaceAll(xmmlTagRegex, (match, tag, attribute, group3) => {
+    console.log(tag, attribute);
 
-    return `--<${group1}${group2}>\n${group3}\n--</${group1}>`;
+    return `--<${tag}${attribute}>\n${group3}\n--</${tag}>`;
   });
 
   formatted = formatSQL(formatted, {
@@ -46,7 +46,7 @@ function formatMyBatisSQL(text: string) {
     newlineBeforeSemicolon: true,
     linesBetweenQueries: 1,
     tabWidth: editor.options.tabSize as number,
-    useTabs: !editor.options.insertSpaces as boolean,
+    useTabs: !editor.options.insertSpaces,
     
   });
 
@@ -56,8 +56,9 @@ function formatMyBatisSQL(text: string) {
 
   const xmmlTagRegexRecover =
     /--<\s*(if|choose|when|otherwise|foreach|where|select|insert|update|delete)([^>]*)>([\s\S]*?)--<\/\s*\1\s*>/g;
-  formatted = formatted.replaceAll(xmmlTagRegexRecover, (match, group1, group2, group3) => {
-    return `\n<${group1}${group2}>${group3}</${group1}>\n`;
+  formatted = formatted.replaceAll(xmmlTagRegexRecover, (match, tag, attribute, content) => {
+    const contentTrim = content.trimStart();
+    return `\n<${tag}${attribute}>\n\t${contentTrim}\n</${tag}>`;
   });
 
   return formatted;
@@ -82,7 +83,7 @@ export function activate(context: vscode.ExtensionContext) {
             selection.end.character
           );
           const highlighted = activeTextEditor.document.getText(selectionRange);
-
+          
           console.log("Highlighted", highlighted);
           if (isXMLContent(highlighted)) {
             var formatted = formatMyBatisXML(highlighted);
@@ -132,7 +133,6 @@ function formatMyBatisXML(xmlContent: string): string {
       let spaceMinue1 = spaceArr.join("");
       return `<${tag}${attribute}>\n${space}${sqlFormatted}\r\n${spaceMinue1}</${tag}>`;
     }
-
     // Otherwise, it's a dynamic SQL tag, which we should format carefully
     return `<${tag}>${content.trim()}</${tag}>`;
   });
