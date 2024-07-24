@@ -4,6 +4,15 @@ import { format as formatSQL } from "sql-formatter";
 import * as vscode from "vscode";
 import formatXML from "xml-formatter";
 import { createConfig } from "./config";
+import {
+  commentXmlInSql,
+  coverEntityXml,
+  coverValueMybatisSlots,
+  isXMLContent,
+  recoverEntityXml,
+  recoverValueMybatisSlots,
+  uncommentXmlInSql,
+} from "./utils";
 
 const editorFormattingOptions = (editor: vscode.TextEditor) => ({
   // According to types, these editor.options properties can also be strings or undefined,
@@ -16,29 +25,36 @@ const editorFormattingOptions = (editor: vscode.TextEditor) => ({
 const createConfigForEditor = (editor: vscode.TextEditor) =>
   createConfig(vscode.workspace.getConfiguration("SQL-Formatter-VSCode"), editorFormattingOptions(editor), "sql");
 
+function convertMyBatisToSql(text: string) {
+  let formatted = coverValueMybatisSlots(text);
+
+  formatted = coverEntityXml(formatted);
+
+  formatted = commentXmlInSql(formatted);
+
+  return text;
+}
+
+function convertSQLToMyBatis(text: string) {
+  let formatted = uncommentXmlInSql(text);
+  formatted = recoverEntityXml(formatted);
+  formatted = recoverValueMybatisSlots(formatted);
+
+  return formatted;
+}
+
 function formatMyBatisSQL(text: string) {
   const editor = vscode.window.activeTextEditor;
   if (!editor) {
     return text;
   }
 
-
   //replace #{text} to '#{text}' or ${text} to '${text}
-  let formatted = text.replaceAll(/#\{([^\}]*?)\}/g, "'#{$1}'");
-  formatted = formatted.replaceAll(/$\{([^\}]*?)\}/g, "'${$1}'");
+  let formatted = coverValueMybatisSlots(text);
 
-  formatted = formatted.replaceAll(/&gt;/g, ">");
-  formatted = formatted.replaceAll(/&lt;/g, "<");
+  formatted = coverEntityXml(formatted);
 
-
-  const xmmlTagRegex =
-    /<\s*(if|choose|when|otherwise|foreach|where|select|insert|update|delete)([^>]*)>([\s\S]*?)<\/\s*\1\s*>/g;
-
-  formatted = formatted.replaceAll(xmmlTagRegex, (match, tag, attribute, group3) => {
-    console.log(tag, attribute);
-
-    return `--<${tag}${attribute}>\n${group3}\n--</${tag}>`;
-  });
+  formatted = commentXmlInSql(formatted);
 
   formatted = formatSQL(formatted, {
     keywordCase: "upper",
@@ -47,66 +63,14 @@ function formatMyBatisSQL(text: string) {
     linesBetweenQueries: 1,
     tabWidth: editor.options.tabSize as number,
     useTabs: !editor.options.insertSpaces,
-    
   });
 
   //recover
-  formatted = formatted.replaceAll(/'#\{([^\}]*?)\}'/g, "#{$1}");
-  formatted = formatted.replaceAll(/'${([^\}]*?)\}'/g, "${$1}");
-
-  const xmmlTagRegexRecover =
-    /--<\s*(if|choose|when|otherwise|foreach|where|select|insert|update|delete)([^>]*)>([\s\S]*?)--<\/\s*\1\s*>/g;
-  formatted = formatted.replaceAll(xmmlTagRegexRecover, (match, tag, attribute, content) => {
-    const contentTrim = content.trimStart();
-    return `\n<${tag}${attribute}>\n\t${contentTrim}\n</${tag}>`;
-  });
+  formatted = uncommentXmlInSql(formatted);
+  formatted = recoverEntityXml(formatted);
+  formatted = recoverValueMybatisSlots(formatted);
 
   return formatted;
-}
-function isXMLContent(text: string) {
-  const xmlTagRegex = /^\s*<\s*([^>]*?)>/g;
-  return xmlTagRegex.test(text);
-}
-export function activate(context: vscode.ExtensionContext) {
-  // 👎 formatter implemented as separate command
-  vscode.commands.registerCommand("extension.format-foo", () => {
-    const { activeTextEditor } = vscode.window;
-
-    if (activeTextEditor && activeTextEditor.document.languageId === "xml") {
-      activeTextEditor.edit((editBuilder) => {
-        const selection = activeTextEditor.selection;
-        if (selection && !selection.isEmpty) {
-          const selectionRange = new vscode.Range(
-            selection.start.line,
-            selection.start.character,
-            selection.end.line,
-            selection.end.character
-          );
-          const highlighted = activeTextEditor.document.getText(selectionRange);
-          
-          console.log("Highlighted", highlighted);
-          if (isXMLContent(highlighted)) {
-            var formatted = formatMyBatisXML(highlighted);
-          } else {
-            var formatted = formatMyBatisSQL(highlighted);
-          }
-          editBuilder.replace(selectionRange, formatted);
-        }
-      });
-    }
-  });
-
-  // // 👍 formatter implemented using API
-  // vscode.languages.registerDocumentFormattingEditProvider('xml', {
-  // 	provideDocumentFormattingEdits(document: vscode.TextDocument): vscode.TextEdit[] {
-  // 		const firstLine = document.lineAt(0);
-  // 		if (firstLine.text !== '42') {
-  // 			return [vscode.TextEdit.insert(firstLine.range.start, '42\n')];
-  // 		}
-
-  // 		return [];
-  // 	}
-  // });
 }
 
 // Function to format the MyBatis XML content with embedded SQL
@@ -174,6 +138,48 @@ function formatSQLWithMyBatisTags(sqlContent: string): string {
       return formatSQL(segment, { language: "sql" });
     })
     .join("\n"); // Join the formatted segments with newlines
+}
+
+export function activate(context: vscode.ExtensionContext) {
+  // 👎 formatter implemented as separate command
+  vscode.commands.registerCommand("extension.format-foo", () => {
+    const { activeTextEditor } = vscode.window;
+
+    if (activeTextEditor && activeTextEditor.document.languageId === "xml") {
+      activeTextEditor.edit((editBuilder) => {
+        const selection = activeTextEditor.selection;
+        if (selection && !selection.isEmpty) {
+          const selectionRange = new vscode.Range(
+            selection.start.line,
+            selection.start.character,
+            selection.end.line,
+            selection.end.character
+          );
+          const highlighted = activeTextEditor.document.getText(selectionRange);
+
+          console.log("Highlighted", highlighted);
+          if (isXMLContent(highlighted)) {
+            var formatted = formatMyBatisXML(highlighted);
+          } else {
+            var formatted = formatMyBatisSQL(highlighted);
+          }
+          editBuilder.replace(selectionRange, formatted);
+        }
+      });
+    }
+  });
+
+  // // 👍 formatter implemented using API
+  // vscode.languages.registerDocumentFormattingEditProvider('xml', {
+  // 	provideDocumentFormattingEdits(document: vscode.TextDocument): vscode.TextEdit[] {
+  // 		const firstLine = document.lineAt(0);
+  // 		if (firstLine.text !== '42') {
+  // 			return [vscode.TextEdit.insert(firstLine.range.start, '42\n')];
+  // 		}
+
+  // 		return [];
+  // 	}
+  // });
 }
 // This method is called when your extension is deactivated
 export function deactivate() {}
