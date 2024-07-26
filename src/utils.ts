@@ -15,13 +15,23 @@ export function recoverEntityXml(text: string): string {
 // -----
 export function coverValueMybatisSlots(text: string): string {
   let formatted = text.replaceAll(/#\{([^\}]*?)\}/g, "'#{$1}'");
-  formatted = formatted.replaceAll(/$\{([^\}]*?)\}/g, "'${$1}'");
+  formatted = formatted.replaceAll(/\$\{([^\}]*?)\}/g, "'${$1}'");
+  return formatted;
+}
+export function coverValueMybatisSlotsInDBeaver(text: string): string {
+  let formatted = text.replaceAll(/#\{([^\}]*?)\}/g, "${$1}");
+  formatted = formatted.replaceAll(/$\{([^\}]*?)\}/g, "${$1}");
   return formatted;
 }
 
 export function recoverValueMybatisSlots(text: string): string {
   let formatted = text.replaceAll(/'#\{([^\}]*?)\}'/g, "#{$1}");
-  formatted = formatted.replaceAll(/'${([^\}]*?)\}'/g, "${$1}");
+  formatted = formatted.replaceAll(/'\${([^\}]*?)\}'/g, "${$1}");
+  return formatted;
+}
+
+export function recoverValueMybatisSlotsInDBeaver(text: string): string {
+  let formatted = text.replaceAll(/'$\{([^\}]*?)\}'/g, "#{$1}");
   return formatted;
 }
 // -----
@@ -44,6 +54,27 @@ export function commentXmlInSql(text: string): string {
   return formatted;
 }
 
+export function commentMultiLineXmlInSql(text: string): string {
+  const xmmlTagRegex =
+    /<\s*(if|choose|when|otherwise|foreach|where|select|insert|update|delete)([^>]*)>([\s\S]*?)<\/\s*\1\s*>/g;
+
+  let formatted = text.replaceAll(xmmlTagRegex, (match, tag, attribute, body) => {
+    console.log(tag, attribute);
+
+    body = commentMultiLineXmlInSql(body);
+
+    return `/*<${tag}${attribute}>*/\n${body}\n/*</${tag}>*/`;
+  });
+
+  const xmlTagSelfClosingRegex = /<\s*(include)([^>]*)\/>/g;
+  formatted = formatted.replaceAll(xmlTagSelfClosingRegex, (match, tag, attribute, group3) => {
+    console.log(tag, attribute);
+    return `/*<${tag}${attribute}/>*/`;
+  });
+
+  return formatted;
+}
+
 export function uncommentXmlInSql(text: string): string {
   const xmmlTagRegexRecover =
     /--<\s*(if|choose|when|otherwise|foreach|where|select|insert|update|delete)([^>]*)>([\s\S]*?)--<\/\s*\1\s*>/g;
@@ -58,8 +89,58 @@ export function uncommentXmlInSql(text: string): string {
   });
   return formatted;
 }
+export function uncommentMultiLineXmlInSql(text: string): string {
+  const xmmlTagRegexRecover =
+    /\/\*\s*<\s*(if|choose|when|otherwise|foreach|where|select|insert|update|delete)([^>]*)>\*\/([\s\S]*?)\/\*<\/\s*\1\s*>\*\//g;
+  let formatted = text.replaceAll(xmmlTagRegexRecover, (match, tag, attribute, content) => {
+    const contentTrim = uncommentMultiLineXmlInSql(content.trimStart());
+    return `\n<${tag}${attribute}>\n\t${contentTrim}\n</${tag}>`;
+  });
+
+  const xmlTagSelfClosingRegexRecover = /\/\*\s*<\s*(include)([^>]*)>\s*\*\//g;
+  formatted = formatted.replaceAll(xmlTagSelfClosingRegexRecover, (match, tag, attribute, group3) => {
+    return `\n<${tag.trim()}${attribute}/>`;
+  });
+  return formatted;
+}
 // -----
 export function isXMLContent(text: string) {
   const xmlTagRegex = /^\s*<\s*([^>]*?)>/g;
   return xmlTagRegex.test(text);
 }
+
+export function convertSQLToMyBatis(text: string) {
+  let formatted = uncommentXmlInSql(text);
+  formatted = uncommentMultiLineXmlInSql(formatted);
+  formatted = recoverEntityXml(formatted);
+  formatted = recoverValueMybatisSlots(formatted);
+
+  return formatted;
+}
+
+export function convertSQLToMyBatisInDBeaver(text: string) {
+  let formatted = uncommentXmlInSql(text);
+  formatted = uncommentMultiLineXmlInSql(formatted);
+  formatted = recoverEntityXml(formatted);
+  formatted = recoverValueMybatisSlotsInDBeaver(formatted);
+
+  return formatted;
+}
+
+export function convertMyBatisToSql(text: string) {
+  let formatted = coverValueMybatisSlots(text);
+  formatted = coverEntityXml(formatted);
+  formatted = commentXmlInSql(formatted);
+
+  return formatted;
+}
+
+export function convertMyBatisToSqlInDBeaver(text: string) {
+  let formatted = coverValueMybatisSlotsInDBeaver(text);
+  formatted = coverEntityXml(formatted);
+  formatted = commentMultiLineXmlInSql(formatted);
+
+  return formatted;
+}
+
+

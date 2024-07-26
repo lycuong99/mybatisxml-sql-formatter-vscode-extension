@@ -2,7 +2,7 @@
   "name": "mybatis-formatter",
   "displayName": "Mybatis Formatter",
   "description": "",
-  "version": "0.0.7",
+  "version": "0.1.2",
   "icon": "logo.jpg",
   "publisher": "cuongly99",
   "engines": {
@@ -31,6 +31,14 @@
       {
         "command": "extension.format-foo",
         "title": "Format Mybatis"
+      },
+      {
+        "command": "extension.to-sql",
+        "title": "Mybatis TO SQL"
+      },
+      {
+        "command": "extension.to-mybatis",
+        "title": "SQL TO Mybatis"
       }
     ]
   },

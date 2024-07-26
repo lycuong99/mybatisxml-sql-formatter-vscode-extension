@@ -6,6 +6,10 @@ import formatXML from "xml-formatter";
 import { createConfig } from "./config";
 import {
   commentXmlInSql,
+  convertMyBatisToSql,
+  convertMyBatisToSqlInDBeaver,
+  convertSQLToMyBatis,
+  convertSQLToMyBatisInDBeaver,
   coverEntityXml,
   coverValueMybatisSlots,
   isXMLContent,
@@ -24,24 +28,6 @@ const editorFormattingOptions = (editor: vscode.TextEditor) => ({
 
 const createConfigForEditor = (editor: vscode.TextEditor) =>
   createConfig(vscode.workspace.getConfiguration("SQL-Formatter-VSCode"), editorFormattingOptions(editor), "sql");
-
-function convertMyBatisToSql(text: string) {
-  let formatted = coverValueMybatisSlots(text);
-
-  formatted = coverEntityXml(formatted);
-
-  formatted = commentXmlInSql(formatted);
-
-  return text;
-}
-
-function convertSQLToMyBatis(text: string) {
-  let formatted = uncommentXmlInSql(text);
-  formatted = recoverEntityXml(formatted);
-  formatted = recoverValueMybatisSlots(formatted);
-
-  return formatted;
-}
 
 function formatMyBatisSQL(text: string) {
   const editor = vscode.window.activeTextEditor;
@@ -140,46 +126,98 @@ function formatSQLWithMyBatisTags(sqlContent: string): string {
     .join("\n"); // Join the formatted segments with newlines
 }
 
+function getSelectedText() {
+  const { activeTextEditor } = vscode.window;
+  if (!activeTextEditor) {
+    return;
+  }
+  const selection = activeTextEditor.selection;
+  if (!selection || selection.isEmpty) {
+    return;
+  }
+
+  const selectionRange = new vscode.Range(
+    selection.start.line,
+    selection.start.character,
+    selection.end.line,
+    selection.end.character
+  );
+  const highlighted = activeTextEditor.document.getText(selectionRange);
+  return {
+    selectedText: highlighted,
+    selectionRange,
+  };
+}
+
+const formatSelect = () => {
+  const { activeTextEditor } = vscode.window;
+  if (!activeTextEditor) {
+    return;
+  }
+  if (activeTextEditor.document.languageId === "xml") {
+    activeTextEditor.edit((editBuilder) => {
+      const selectTextData = getSelectedText();
+      if (!selectTextData) {
+        return;
+      }
+
+      const { selectedText, selectionRange } = selectTextData;
+      let formatted;
+      if (isXMLContent(selectedText)) {
+        formatted = formatMyBatisXML(selectedText);
+      } else {
+        formatted = formatMyBatisSQL(selectedText);
+      }
+      editBuilder.replace(selectionRange, formatted);
+    });
+  }
+};
+
+const convertMybatisToSQLCommand = () => {
+  const { activeTextEditor } = vscode.window;
+  if (!activeTextEditor) {
+    return;
+  }
+  if (activeTextEditor.document.languageId === "xml") {
+    activeTextEditor.edit((editBuilder) => {
+      const selectTextData = getSelectedText();
+      if (!selectTextData) {
+        return;
+      }
+
+      const { selectedText, selectionRange } = selectTextData;
+      let formatted = convertMyBatisToSqlInDBeaver(selectedText);
+
+      editBuilder.replace(selectionRange, formatted);
+    });
+  }
+};
+
+const convertSQLToMyBatisCommand = () => {
+  const { activeTextEditor } = vscode.window;
+  if (!activeTextEditor) {
+    return;
+  }
+  if (activeTextEditor.document.languageId === "xml") {
+    activeTextEditor.edit((editBuilder) => {
+      const selectTextData = getSelectedText();
+      if (!selectTextData) {
+        return;
+      }
+
+      const { selectedText, selectionRange } = selectTextData;
+      let formatted = convertSQLToMyBatisInDBeaver(selectedText);
+
+      editBuilder.replace(selectionRange, formatted);
+    });
+  }
+};
+
 export function activate(context: vscode.ExtensionContext) {
   // 👎 formatter implemented as separate command
-  vscode.commands.registerCommand("extension.format-foo", () => {
-    const { activeTextEditor } = vscode.window;
-
-    if (activeTextEditor && activeTextEditor.document.languageId === "xml") {
-      activeTextEditor.edit((editBuilder) => {
-        const selection = activeTextEditor.selection;
-        if (selection && !selection.isEmpty) {
-          const selectionRange = new vscode.Range(
-            selection.start.line,
-            selection.start.character,
-            selection.end.line,
-            selection.end.character
-          );
-          const highlighted = activeTextEditor.document.getText(selectionRange);
-
-          console.log("Highlighted", highlighted);
-          if (isXMLContent(highlighted)) {
-            var formatted = formatMyBatisXML(highlighted);
-          } else {
-            var formatted = formatMyBatisSQL(highlighted);
-          }
-          editBuilder.replace(selectionRange, formatted);
-        }
-      });
-    }
-  });
-
-  // // 👍 formatter implemented using API
-  // vscode.languages.registerDocumentFormattingEditProvider('xml', {
-  // 	provideDocumentFormattingEdits(document: vscode.TextDocument): vscode.TextEdit[] {
-  // 		const firstLine = document.lineAt(0);
-  // 		if (firstLine.text !== '42') {
-  // 			return [vscode.TextEdit.insert(firstLine.range.start, '42\n')];
-  // 		}
-
-  // 		return [];
-  // 	}
-  // });
+  vscode.commands.registerCommand("extension.format-foo", formatSelect);
+  vscode.commands.registerCommand("extension.to-sql", convertMybatisToSQLCommand);
+  vscode.commands.registerCommand("extension.to-mybatis", convertSQLToMyBatisCommand);
 }
 // This method is called when your extension is deactivated
 export function deactivate() {}
