@@ -2,7 +2,7 @@
   "name": "mybatis-formatter",
   "displayName": "Mybatis Formatter",
   "description": "",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "icon": "logo.jpg",
   "publisher": "cuongly99",
   "engines": {

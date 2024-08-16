@@ -1,0 +1,109 @@
+<select id="selectDonationJoinPath">
+        select scv.cd_v
+        , scv.cd_v_meaning cd_nm
+        from possoc.tb_soc_code_idx sci
+        , possoc.tb_soc_code_value scv
+        where sci.standard_english_id = scv.standard_english_id
+        and sci.standard_english_id = 'DSH_JOIN_PATH'
+        and scv.active_flag = 'Y'
+        order BY scv.cd_v_inquiry_seq
+        <if>
+            
+        </if>
+    </select>
+
+
+
+    <select id="findEmployeeNumber" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+        employee_name
+        , organization_name
+        FROM possoc.TB_SOC_USER
+        WHERE 1=1
+        AND gcs_comp_code = #{GCS_COMP_CODE}
+        AND employee_number = #{EMPLOYEE_NUMBER}
+        WHERE 1=1 
+        <if test='CHANGE_TYPE != "" and CHANGE_TYPE!= null' >
+    AND T1.change_type = #{CHANGE_TYPE} -- 'CH01'
+    </if>
+    <if test='EMPLOYEE_NUMBER != "" and EMPLOYEE_NUMBER!= null' >
+        AND T1.employee_number LIKE '%${EMPLOYEE_NUMBER}%'
+    </if>
+    <if test='SEARCH_START_DATE == "" or SEARCH_START_DATE== null' >
+        AND T1.start_date &gt;= nvl(NULL, to_date('1900-01-01','yyyy-mm-dd'))
+    </if>
+    <if test='SEARCH_START_DATE != "" and SEARCH_START_DATE!= null' >
+        AND (T1.start_date &gt;= nvl(to_date(#{SEARCH_START_DATE},'yyyy-mm-dd'), to_date('1900-01-01','yyyy-mm-dd'))
+    </if>
+
+    <if test='SEARCH_END_DATE != "" and SEARCH_END_DATE!= null' >
+        AND T1.start_date &lt;= nvl(to_date(#{SEARCH_END_DATE},'yyyy-mm-dd'), SYSDATE))
+    </if>
+
+    </select>
+
+<select id="insertDonationInfo" parameterType="java.util.Map" resultType="int">
+    INSERT INTO
+        possoc.TB_SOC_DONATION_REQUEST (
+            gcs_comp_code,
+            request_id,
+            change_type,
+            request_type,
+            person_id,
+            employee_number,
+            request_date,
+            apply_date,
+            start_date,
+            end_date,
+            active_flag,
+            attribute1
+        )
+    VALUES
+        (
+            #{GCS_COMP_CODE} -- 49'
+    ,
+            (
+                SELECT
+                    nvl (max(request_id), 0) + 1
+                FROM
+                    possoc.TB_SOC_DONATION_REQUEST
+                WHERE
+                    gcs_comp_code = #{GCS_COMP_CODE}
+            ),
+            #{CHANGE_TYPE} -- 'CH02'
+    ,
+            #{REQUEST_TYPE} -- 'A01'
+    ,
+            #{EMPLOYEE_NUMBER} -- 222191
+    ,
+            #{EMPLOYEE_NUMBER} -- '222191'
+    ,
+            sysdate,
+            NULL,
+            sysdate,
+            to_date ('9999-12-31', 'yyyy-mm-dd'),
+            'Y',
+            #{ATTRIBUTE1}
+        ) returning REQUEST_ID INTO REQUEST_ID
+</select>
+
+UPDATE	poss91.tb_s91e_sys_user SET
+             	regist_date = CURRENT_DATE
+			<if test='start_date != null and !start_date.equals("".toString())'>
+             ,	start_date = CAST(#{start_date} AS DATE)
+			</if>
+			<if test='end_date != null and !start_date.equals("".toString())'>
+             ,	end_date = CAST(#{end_date} AS DATE)
+			</if>
+             ,	data_type = #{auth_nm}
+            <if test='!company1.equals("nullcode")'>
+             ,	company1 = #{company1}
+			</if>
+            <if test='company1.equals("nullcode")'>
+             ,	company1 = NULL
+			</if>
+            <include refid="common.auditUpdate"/>
+		WHERE	employee_number = #{employee_number}
+		  AND	company = #{category_nm}
+
+          

@@ -173,7 +173,7 @@ const formatSelect = () => {
   }
 };
 
-const convertMybatisToSQLCommand = () => {
+function workWithSelectedText(fn: (selectedText: string) => string) {
   const { activeTextEditor } = vscode.window;
   if (!activeTextEditor) {
     return;
@@ -186,31 +186,19 @@ const convertMybatisToSQLCommand = () => {
       }
 
       const { selectedText, selectionRange } = selectTextData;
-      let formatted = convertMyBatisToSqlInDBeaver(selectedText);
+      let formatted = fn(selectedText);
 
       editBuilder.replace(selectionRange, formatted);
     });
   }
+}
+
+const convertMybatisToSQLCommand = () => {
+  workWithSelectedText(convertMyBatisToSqlInDBeaver);
 };
 
 const convertSQLToMyBatisCommand = () => {
-  const { activeTextEditor } = vscode.window;
-  if (!activeTextEditor) {
-    return;
-  }
-  if (activeTextEditor.document.languageId === "xml") {
-    activeTextEditor.edit((editBuilder) => {
-      const selectTextData = getSelectedText();
-      if (!selectTextData) {
-        return;
-      }
-
-      const { selectedText, selectionRange } = selectTextData;
-      let formatted = convertSQLToMyBatisInDBeaver(selectedText);
-
-      editBuilder.replace(selectionRange, formatted);
-    });
-  }
+  workWithSelectedText(convertSQLToMyBatisInDBeaver);
 };
 
 export function activate(context: vscode.ExtensionContext) {

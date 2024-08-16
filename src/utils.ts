@@ -6,7 +6,7 @@ export function coverEntityXml(text: string): string {
 
 export function recoverEntityXml(text: string): string {
   let formatted = text.replaceAll(/\s>=\s/g, " &gt;= ");
-  formatted = formatted.replaceAll(/\s<=\s/g, " &lt; ");
+  formatted = formatted.replaceAll(/\s<=\s/g, " &lt;= ");
   formatted = formatted.replaceAll(/\s<>\s/g, " &lt;&gt; ");
   formatted = formatted.replaceAll(/\s>\s/g, " &gt; ");
   formatted = formatted.replaceAll(/\s<\s/g, " &lt; ");
@@ -15,7 +15,9 @@ export function recoverEntityXml(text: string): string {
 // -----
 export function coverValueMybatisSlots(text: string): string {
   let formatted = text.replaceAll(/#\{([^\}]*?)\}/g, "'#{$1}'");
-  formatted = formatted.replaceAll(/\$\{([^\}]*?)\}/g, "'${$1}'");
+
+  // const $reggex = /\s[^']\$\}/g;
+  // formatted = formatted.replaceAll(/\$\{([^\}]*?)\}/g, "'${$1}'");
   return formatted;
 }
 export function coverValueMybatisSlotsInDBeaver(text: string): string {
@@ -31,7 +33,7 @@ export function recoverValueMybatisSlots(text: string): string {
 }
 
 export function recoverValueMybatisSlotsInDBeaver(text: string): string {
-  let formatted = text.replaceAll(/'$\{([^\}]*?)\}'/g, "#{$1}");
+  let formatted = text.replaceAll(/([^\%])\$\{([^\}]*?)\}/g, "$1#{$2}");
   return formatted;
 }
 // -----
@@ -63,7 +65,7 @@ export function commentMultiLineXmlInSql(text: string): string {
 
     body = commentMultiLineXmlInSql(body);
 
-    return `/*<${tag}${attribute}>*/\n${body}\n/*</${tag}>*/`;
+    return `/*<${tag}${attribute}>*/${body}/*</${tag}>*/`;
   });
 
   const xmlTagSelfClosingRegex = /<\s*(include)([^>]*)\/>/g;
@@ -93,13 +95,13 @@ export function uncommentMultiLineXmlInSql(text: string): string {
   const xmmlTagRegexRecover =
     /\/\*\s*<\s*(if|choose|when|otherwise|foreach|where|select|insert|update|delete)([^>]*)>\*\/([\s\S]*?)\/\*<\/\s*\1\s*>\*\//g;
   let formatted = text.replaceAll(xmmlTagRegexRecover, (match, tag, attribute, content) => {
-    const contentTrim = uncommentMultiLineXmlInSql(content.trimStart());
-    return `\n<${tag}${attribute}>\n\t${contentTrim}\n</${tag}>`;
+    const contentTrim = uncommentMultiLineXmlInSql(content);
+    return `<${tag}${attribute}>${contentTrim}</${tag}>`;
   });
 
   const xmlTagSelfClosingRegexRecover = /\/\*\s*<\s*(include)([^>]*)>\s*\*\//g;
   formatted = formatted.replaceAll(xmlTagSelfClosingRegexRecover, (match, tag, attribute, group3) => {
-    return `\n<${tag.trim()}${attribute}/>`;
+    return `<${tag.trim()}${attribute}/>`;
   });
   return formatted;
 }
@@ -119,10 +121,10 @@ export function convertSQLToMyBatis(text: string) {
 }
 
 export function convertSQLToMyBatisInDBeaver(text: string) {
-  let formatted = uncommentXmlInSql(text);
-  formatted = uncommentMultiLineXmlInSql(formatted);
-  formatted = recoverEntityXml(formatted);
+  let formatted = recoverEntityXml(text);
   formatted = recoverValueMybatisSlotsInDBeaver(formatted);
+  formatted = uncommentXmlInSql(formatted);
+  formatted = uncommentMultiLineXmlInSql(formatted);
 
   return formatted;
 }
@@ -142,5 +144,3 @@ export function convertMyBatisToSqlInDBeaver(text: string) {
 
   return formatted;
 }
-
-
